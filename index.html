@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Canticora — Cancionero litúrgico</title>
+    <!-- Versión publicada: la estampa webApp/tools/deploy-web.sh al publicar. -->
+    <meta name="canticora-version" content="1.1.4">
+    <meta name="description" content="Cancionero litúrgico digital: cantos con acordes, transposición instantánea, repertorios de misa y modo celebración. Funciona sin conexión.">
+    <meta name="theme-color" content="#6750A4">
+    <meta name="color-scheme" content="light">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Canticora">
+    <meta name="application-name" content="Canticora">
+    <style>
+        :root {
+            --canticora-primary: #6750A4;
+            --canticora-surface: #FFFBFE;
+            --canticora-on-surface: #1C1B1F;
+            --canticora-on-surface-variant: #49454F;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: var(--canticora-surface);
+            color: var(--canticora-on-surface);
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            overscroll-behavior: none;
+        }
+
+        #composeTarget {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+        }
+
+        #splash {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 22px;
+            background: var(--canticora-surface);
+            z-index: 10;
+            transition: opacity 320ms ease;
+        }
+
+        #splash[hidden] {
+            display: none;
+        }
+
+        #splash.leaving {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #splash img {
+            width: 104px;
+            height: 104px;
+            border-radius: 24px;
+        }
+
+        #splash .name {
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+
+        #splash .status {
+            font-size: 14px;
+            color: var(--canticora-on-surface-variant);
+            max-width: 22rem;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 34px;
+            height: 34px;
+            border: 3px solid rgba(103, 80, 164, 0.22);
+            border-top-color: var(--canticora-primary);
+            border-radius: 50%;
+            animation: spin 900ms linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .spinner { animation-duration: 2400ms; }
+            #splash { transition: none; }
+        }
+    </style>
+</head>
+<body>
+<div id="splash">
+    <img src="icons/icon-192.png" alt="Canticora">
+    <div class="name">Canticora</div>
+    <div class="spinner" role="progressbar" aria-label="Cargando el cancionero"></div>
+    <div class="status" id="splashStatus">Preparando el cancionero…</div>
+    <noscript>
+        <div class="status">Canticora necesita JavaScript activado para funcionar.</div>
+    </noscript>
+</div>
+
+<div id="composeTarget"></div>
+
+<script src="canticora.js"></script>
+<script>
+    // La pantalla de espera se retira cuando Compose pinta su primer lienzo: así no hay destello
+    // blanco entre el HTML y la app.
+    (function () {
+        var splash = document.getElementById('splash');
+        var status = document.getElementById('splashStatus');
+        var target = document.getElementById('composeTarget');
+        var started = Date.now();
+
+        // Compose monta su lienzo dentro de un shadow root del contenedor, así que no basta con
+        // observar los hijos «normales»: hay que mirar también `shadowRoot`.
+        function composeCanvas() {
+            var direct = target.querySelector('canvas');
+            if (direct) return direct;
+            return target.shadowRoot ? target.shadowRoot.querySelector('canvas') : null;
+        }
+
+        function revealWhenPainted() {
+            if (!composeCanvas()) {
+                setTimeout(revealWhenPainted, 100);
+                return;
+            }
+            var wait = Math.max(0, 200 - (Date.now() - started));
+            setTimeout(function () {
+                splash.classList.add('leaving');
+                setTimeout(function () { splash.hidden = true; }, 340);
+            }, wait);
+        }
+        revealWhenPainted();
+
+        // La primera carga incluye el cancionero completo: conviene explicarlo.
+        setTimeout(function () {
+            if (!splash.hidden) status.textContent = 'Primera carga: descargando el cancionero…';
+        }, 3500);
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('sw.js').catch(function () {
+                    /* Sin service worker la app funciona igual; solo pierde el modo sin conexión. */
+                });
+            });
+        }
+    })();
+</script>
+
+<!--
+    Analítica de uso (ADR-024): beacon al contador propio de canticora.com. Sin cookies, sin
+    identificadores y sin terceros; si falla, la app arranca igual. Se envía solo el canal
+    (instalada o abierta en pestaña) y la versión publicada.
+-->
+<script>
+    (function () {
+        // Ni en desarrollo local ni con Do Not Track activado se avisa.
+        var host = location.hostname;
+        if (location.protocol !== 'https:' || host === 'localhost' || host === '127.0.0.1') return;
+        var dnt = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+        if (dnt === '1' || dnt === 'yes') return;
+
+        var meta = document.querySelector('meta[name="canticora-version"]');
+        var version = meta ? meta.getAttribute('content') : '';
+
+        // Instalada = abierta en modo aplicación (Android/escritorio) o desde la pantalla de
+        // inicio (iOS, que usa navigator.standalone en vez de display-mode).
+        var standalone = window.matchMedia('(display-mode: standalone)').matches
+            || window.matchMedia('(display-mode: fullscreen)').matches
+            || window.navigator.standalone === true;
+
+        var body = JSON.stringify({
+            channel: standalone ? 'instalada' : 'navegador',
+            version: version === 'dev' ? '' : version
+        });
+
+        try {
+            fetch('https://canticora.com/api/visita', {
+                method: 'POST',
+                mode: 'no-cors',
+                keepalive: true,
+                headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+                body: body
+            }).catch(function () { /* el contador nunca interrumpe el arranque */ });
+        } catch (e) { /* idem */ }
+    })();
+</script>
+</body>
+</html>

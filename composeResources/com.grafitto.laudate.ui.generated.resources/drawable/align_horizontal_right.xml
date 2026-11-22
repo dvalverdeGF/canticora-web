@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icono de Canticora, drawable vectorial Android (24 dp).
+     Convertido desde align_horizontal_right.svg (Material Symbols). Compose Multiplatform NO puede pintar
+     SVG en Android —«Android platform doesn't support SVG format»—, asi que los iconos
+     se guardan como vector drawable, que funciona en las dos plataformas (Android y
+     escritorio JVM). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+    <group android:translateX="0" android:translateY="960">
+        <path
+            android:fillColor="#000000"
+            android:pathData="M840-80q-17 0-28.5-11.5T800-120v-720q0-17 11.5-28.5T840-880q17 0 28.5 11.5T880-840v720q0 17-11.5 28.5T840-80ZM380-280q-25 0-42.5-17.5T320-340q0-25 17.5-42.5T380-400h280q25 0 42.5 17.5T720-340q0 25-17.5 42.5T660-280H380ZM140-560q-25 0-42.5-17.5T80-620q0-25 17.5-42.5T140-680h520q25 0 42.5 17.5T720-620q0 25-17.5 42.5T660-560H140Z" />
+    </group>
+</vector>
